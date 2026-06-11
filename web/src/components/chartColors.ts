@@ -1,12 +1,12 @@
 export const CHART_COLORS = [
-  "#6366f1",
-  "#22d3ee",
-  "#a855f7",
-  "#f472b6",
-  "#34d399",
-  "#fbbf24",
-  "#fb7185",
-  "#38bdf8",
+  "#00f5ff",
+  "#ff00aa",
+  "#b026ff",
+  "#ffd000",
+  "#39ff14",
+  "#ff3366",
+  "#ff6600",
+  "#4de8ff",
 ];
 
 export function chartColor(index: number) {

@@ -67,31 +67,6 @@ export function DashboardPage() {
 
       {error && <div className="warnings">{error}</div>}
 
-      {(data?.blockers.length ?? 0) > 0 || (data?.dueToday.length ?? 0) > 0 ? (
-        <section className="attention-section animate-in">
-          <div className="attention-section-inner">
-            <div className="attention-header">
-              <h3>Needs attention</h3>
-              <p className="muted">Blocked and due or overdue work across your sources</p>
-            </div>
-            <div className="grid-2">
-              {(data?.blockers.length ?? 0) > 0 ? (
-                <section className="panel panel-critical panel-glow-danger">
-                  <h3>Blockers ({data?.blockers.length ?? 0})</h3>
-                  <TaskList items={data?.blockers ?? []} emptyLabel="No blockers" />
-                </section>
-              ) : null}
-              {(data?.dueToday.length ?? 0) > 0 ? (
-                <section className="panel panel-warn panel-glow-warn">
-                  <h3>Due today / overdue ({data?.dueToday.length ?? 0})</h3>
-                  <TaskList items={data?.dueToday ?? []} emptyLabel="Nothing due" />
-                </section>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
       <div className="stat-grid">
         <StatCard
           label="Open work"
@@ -138,6 +113,31 @@ export function DashboardPage() {
           delay={7}
         />
       </div>
+
+      {(data?.blockers.length ?? 0) > 0 || (data?.dueToday.length ?? 0) > 0 ? (
+        <section className="attention-section animate-in" style={{ marginTop: 16 }}>
+          <div className="attention-section-inner">
+            <div className="attention-header">
+              <h3>Needs attention</h3>
+              <p className="muted">Blocked and due or overdue work across your sources</p>
+            </div>
+            <div className="grid-2">
+              {(data?.blockers.length ?? 0) > 0 ? (
+                <section className="panel panel-critical panel-glow-danger">
+                  <h3>Blockers ({data?.blockers.length ?? 0})</h3>
+                  <TaskList items={data?.blockers ?? []} emptyLabel="No blockers" />
+                </section>
+              ) : null}
+              {(data?.dueToday.length ?? 0) > 0 ? (
+                <section className="panel panel-warn panel-glow-warn">
+                  <h3>Due today / overdue ({data?.dueToday.length ?? 0})</h3>
+                  <TaskList items={data?.dueToday ?? []} emptyLabel="Nothing due" />
+                </section>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid-2" style={{ marginTop: 16 }}>
         {status?.jira ? (

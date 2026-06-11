@@ -14,10 +14,19 @@ export function Layout() {
   return (
     <>
       <div className="app-backdrop" aria-hidden="true">
+        <div className="cyber-sky" />
+        <div className="cyber-sun-clip">
+          <div className="cyber-sun-glow" />
+          <div className="cyber-sun" />
+        </div>
+        <div className="cyber-grid-floor" />
         <div className="orb orb-1" />
         <div className="orb orb-2" />
         <div className="orb orb-3" />
         <div className="grid-overlay" />
+        <div className="scanlines" />
+        <div className="backdrop-noise" />
+        <div className="vignette" />
       </div>
 
       <div className="app-shell">
@@ -67,7 +76,8 @@ export function Layout() {
 
         <footer className="app-footer muted">
           <span className="footer-glow" aria-hidden="true" />
-          Local command hub
+          <span className="footer-tag">SYS://LOCAL_HUB</span>
+          · Local command hub
           {status?.cursor ? (
             <>
               {" "}
