@@ -1,0 +1,20 @@
+{
+  "name": "cursor-ops",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Local command hub for Cursor — dashboard, agents, and integrations",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "start": "npm run dev --prefix web",
+    "dev": "npm run dev --prefix web",
+    "build": "npm run build --prefix web",
+    "preview": "npm run preview --prefix web"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iriecoffelt/cursor-ops.git"
+  }
+}

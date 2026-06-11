@@ -15,12 +15,15 @@ export function fetchEnvStatus() {
 
 export type EnvStatus = {
   appTitle: string;
+  repoRoot: string;
+  envFilePath: string;
   cursor: boolean;
   jira: boolean;
   notion: boolean;
   notionDatabaseCount: number;
   github: boolean;
-  localAgentCwd: string | null;
+  localAgentCwd: string;
+  localAgentCwdFromEnv: boolean;
 };
 
 export function fetchDashboard() {

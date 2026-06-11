@@ -40,9 +40,9 @@ const GUIDES: IntegrationGuide[] = [
     steps: [
       "Open Cursor → Dashboard → Integrations (or visit cursor.com/dashboard/integrations).",
       "Create or copy your user API key.",
-      "Set CURSOR_API_KEY in ~/Projects/cursor-ops/.env.",
-      "Optional: set LOCAL_AGENT_CWD to the repo path for local agent runs.",
-      "Restart the dev server: cd web && npm run dev.",
+      "Set CURSOR_API_KEY in .env at the repo root.",
+      "Optional: set LOCAL_AGENT_CWD to a project path for local agents (defaults to repo root).",
+      "Restart the dev server: npm start from the repo root.",
       "The Agents tab appears once CURSOR_API_KEY is set. Pulse shows running agents there too.",
     ],
     links: [{ label: "Cursor Integrations", href: "https://cursor.com/dashboard/integrations" }],
@@ -128,6 +128,9 @@ export function EnvPage() {
     status?.github,
   ].filter(Boolean).length;
 
+  const envPath = status?.envFilePath ?? ".env";
+  const repoRoot = status?.repoRoot;
+
   return (
     <>
       <div className="page-header hero-header">
@@ -135,23 +138,32 @@ export function EnvPage() {
           <p className="eyebrow">Configuration</p>
           <h2>Environment setup</h2>
           <p className="muted">
-            Edit <code className="inline-code">~/Projects/cursor-ops/.env</code>
+            Edit <code className="inline-code">{envPath}</code>
             {status ? ` · ${configuredCount} integration${configuredCount === 1 ? "" : "s"} connected` : null}
           </p>
         </div>
       </div>
 
       <section className="panel env-intro">
-        <h3>Quick start</h3>
-        <pre className="code-block">{`cd ~/Projects/cursor-ops
-cp .env.example .env
-# edit .env — keys, APP_TITLE, integration tokens
-cd web && npm run dev`}</pre>
+        <h3>Install (one time)</h3>
+        <pre className="code-block">{`git clone https://github.com/iriecoffelt/cursor-ops.git
+cd cursor-ops
+npm run setup`}</pre>
+        <h4 className="env-subhead">Then configure</h4>
+        <pre className="code-block">{`# edit .env with your API keys
+npm start
+# open http://localhost:5173`}</pre>
         <p className="muted">
-          Never commit <code className="inline-code">.env</code> or paste secrets in chat. Restart the dev server after
-          changes. Visit this page again to refresh connection status — nav tabs only appear for configured
+          <code className="inline-code">npm run setup</code> creates <code className="inline-code">.env</code> and installs
+          dependencies. After that, you only need to edit <code className="inline-code">.env</code> and restart. Never
+          commit <code className="inline-code">.env</code> or paste secrets in chat. Nav tabs appear only for configured
           integrations.
         </p>
+        {repoRoot ? (
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Repo root on this machine: <code className="inline-code">{repoRoot}</code>
+          </p>
+        ) : null}
       </section>
 
       <section className="panel" style={{ marginTop: 16 }}>
@@ -266,10 +278,11 @@ cd web && npm run dev`}</pre>
         {status?.localAgentCwd ? (
           <p>
             Current: <code className="inline-code">{status.localAgentCwd}</code>
+            {!status.localAgentCwdFromEnv ? (
+              <span className="muted"> (default — repo root; set LOCAL_AGENT_CWD to override)</span>
+            ) : null}
           </p>
-        ) : (
-          <p className="muted">Not set — local agents use the server working directory.</p>
-        )}
+        ) : null}
         <p className="muted" style={{ marginBottom: 0 }}>
           {status?.cursor ? (
             <>

@@ -1,4 +1,5 @@
 import type { AgentListItem, AgentSummary, CreateAgentRequest, CreateAgentResponse } from "../types.js";
+import { getLocalAgentCwd } from "../paths.js";
 
 const CURSOR_API = "https://api.cursor.com/v1";
 
@@ -95,7 +96,7 @@ export async function listLocalAgents(): Promise<{ agents: AgentListItem[]; warn
 
   try {
     const { Agent } = await import("@cursor/sdk");
-    const cwd = process.env.LOCAL_AGENT_CWD ?? process.cwd();
+    const cwd = getLocalAgentCwd();
     const list = await Agent.list({ runtime: "local", cwd, apiKey: apiKey() });
     const rows = (list as { items?: Array<{ id: string; name?: string; status?: string }> }).items ?? [];
 
@@ -115,7 +116,7 @@ export async function listLocalAgents(): Promise<{ agents: AgentListItem[]; warn
 
 export async function createLocalAgent(body: CreateAgentRequest): Promise<CreateAgentResponse> {
   const { Agent } = await import("@cursor/sdk");
-  const cwd = body.cwd ?? process.env.LOCAL_AGENT_CWD ?? process.cwd();
+  const cwd = body.cwd ?? getLocalAgentCwd();
 
   const agent = await Agent.create({
     apiKey: apiKey(),

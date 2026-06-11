@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { getEnvFilePath, getLocalAgentCwd, getRepoRoot } from "../paths.js";
 
 export const envRouter = Router();
 
@@ -8,8 +9,13 @@ envRouter.get("/status", (_req, res) => {
     process.env.NOTION_TASKS_DB_ID?.trim() ||
     "";
 
+  const localCwd = getLocalAgentCwd();
+  const localFromEnv = Boolean(process.env.LOCAL_AGENT_CWD?.trim());
+
   res.json({
     appTitle: process.env.APP_TITLE?.trim() || "Cursor Ops",
+    repoRoot: getRepoRoot(),
+    envFilePath: getEnvFilePath(),
     cursor: Boolean(process.env.CURSOR_API_KEY?.trim()),
     jira: Boolean(
       process.env.JIRA_BASE_URL?.trim() &&
@@ -19,6 +25,7 @@ envRouter.get("/status", (_req, res) => {
     notion: Boolean(process.env.NOTION_TOKEN?.trim() && notionIds),
     notionDatabaseCount: notionIds ? notionIds.split(",").filter(Boolean).length : 0,
     github: Boolean(process.env.GITHUB_TOKEN?.trim()),
-    localAgentCwd: process.env.LOCAL_AGENT_CWD?.trim() || null,
+    localAgentCwd: localCwd,
+    localAgentCwdFromEnv: localFromEnv,
   });
 });
