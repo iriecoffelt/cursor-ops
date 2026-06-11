@@ -46,6 +46,7 @@ export type DashboardData = {
     dueToday: number;
     waitingOnMe: number;
     activeAgents: number;
+    gmailUnread: number;
   };
   jira: SourceStats;
   notion: SourceStats & {

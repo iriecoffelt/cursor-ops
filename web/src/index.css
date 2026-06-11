@@ -267,6 +267,23 @@ a:hover {
 
 /* ── Buttons ── */
 
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
+  border: 1px solid var(--border);
+  background: rgba(26, 31, 40, 0.9);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
 button,
 .button {
   appearance: none;
@@ -774,6 +791,73 @@ button.primary:hover {
   margin-top: 16px;
 }
 
+.collapsible-section {
+  margin-top: 16px;
+}
+
+.collapsible-section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.collapsible-section-toggle:hover .collapsible-section-title {
+  color: #fff;
+}
+
+.collapsible-section-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  transition: color 0.15s ease;
+}
+
+.collapsible-section-chevron {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  margin-top: -2px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease, border-color 0.15s ease;
+}
+
+.collapsible-section.is-open .collapsible-section-chevron {
+  margin-top: 2px;
+  transform: rotate(45deg);
+}
+
+.collapsible-section-badge {
+  flex-shrink: 0;
+}
+
+.collapsible-section-body {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.collapsible-section-body > :first-child {
+  margin-top: 0;
+}
+
+.env-card.collapsible-section .collapsible-section-body {
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
 .env-card h3 {
   margin: 0;
 }
@@ -845,6 +929,10 @@ button.primary:hover {
 .env-tab-hint {
   margin: 0 0 8px;
   font-size: 0.85rem;
+}
+
+.env-guides-grid {
+  margin-top: 12px;
 }
 
 .env-settings-grid {
@@ -1015,6 +1103,76 @@ button.primary:hover {
   white-space: pre-wrap;
   font-family: var(--mono);
   font-size: 0.82rem;
+}
+
+.stat-card-muted {
+  opacity: 0.55;
+}
+
+.mail-connect-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.mail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mail-item {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mail-item:last-child {
+  border-bottom: none;
+}
+
+.mail-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.mail-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.mail-subject {
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+a.mail-subject:hover {
+  color: var(--accent-blue);
+}
+
+.mail-from {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.mail-snippet {
+  font-size: 0.82rem;
+  color: #c4c7cc;
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.badge.mail-badge-google {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
 }
 
 .muted {

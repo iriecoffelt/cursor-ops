@@ -24,7 +24,58 @@ export type EnvStatus = {
   github: boolean;
   localAgentCwd: string;
   localAgentCwdFromEnv: boolean;
+  mail: {
+    showTab: boolean;
+    googleEnabled: boolean;
+    googleConfigured: boolean;
+    googleConnected: boolean;
+    oauthRedirectBase: string;
+  };
 };
+
+export type MailProviderStatus = {
+  enabled: boolean;
+  configured: boolean;
+  connected: boolean;
+  email?: string;
+  warning?: string;
+};
+
+export type MailStatusResponse = {
+  google: MailProviderStatus;
+  showMailTab: boolean;
+  oauthRedirectBase: string;
+};
+
+export type MailMessage = {
+  id: string;
+  provider: "google";
+  subject: string;
+  from: string;
+  snippet: string;
+  receivedAt: string;
+  isUnread: boolean;
+  url?: string;
+};
+
+export type MailInboxResponse = {
+  fetchedAt: string;
+  messages: MailMessage[];
+  unreadCount: number;
+  warnings: string[];
+};
+
+export function fetchMailStatus() {
+  return json<MailStatusResponse>("/api/mail/status");
+}
+
+export function fetchMailInbox() {
+  return json<MailInboxResponse>("/api/mail/");
+}
+
+export function disconnectMailProvider() {
+  return json<{ ok: boolean }>("/api/mail/disconnect/google", { method: "POST" });
+}
 
 export function fetchDashboard() {
   return json<DashboardData>("/api/dashboard");

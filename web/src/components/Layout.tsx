@@ -45,6 +45,11 @@ export function Layout() {
                 GitHub
               </NavLink>
             ) : null}
+            {status?.mail?.showTab ? (
+              <NavLink to="/mail" className={({ isActive }) => (isActive ? "active" : undefined)}>
+                Mail
+              </NavLink>
+            ) : null}
             {status?.cursor ? (
               <NavLink to="/agents" className={({ isActive }) => (isActive ? "active" : undefined)}>
                 Agents

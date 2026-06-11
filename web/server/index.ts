@@ -7,6 +7,7 @@ import { envRouter } from "./routes/env.js";
 import { agentsRouter } from "./routes/agents.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { tasksRouter } from "./routes/tasks.js";
+import { mailRouter } from "./routes/mail.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
@@ -25,6 +26,7 @@ app.use("/api/env", envRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/tasks", tasksRouter);
 app.use("/api/agents", agentsRouter);
+app.use("/api/mail", mailRouter);
 
 app.listen(PORT, () => {
   console.log(`cursor-ops API listening on http://localhost:${PORT}`);

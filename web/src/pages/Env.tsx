@@ -1,8 +1,11 @@
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { CollapsibleSection } from "../components/CollapsibleSection";
+import { GmailConnectSection, gmailGuideBadge } from "../components/MailSettingsPanel";
 import { useEnvStatus } from "../context/EnvStatusContext";
+import type { EnvStatus } from "../api";
 
-type IntegrationId = "cursor" | "jira" | "notion" | "github";
+type IntegrationId = "cursor" | "jira" | "notion" | "github" | "mail";
 
 type IntegrationGuide = {
   id: IntegrationId;
@@ -13,6 +16,17 @@ type IntegrationGuide = {
   steps: string[];
   links: { label: string; href: string }[];
 };
+
+function integrationConfigured(id: IntegrationId, status: EnvStatus | null) {
+  if (!status) return null;
+  if (id === "mail") return status.mail.showTab;
+  return Boolean(status[id]);
+}
+
+function statusBadge(ok: boolean | null) {
+  if (ok === null) return null;
+  return <span className={`env-badge ${ok ? "ok" : "missing"}`}>{ok ? "Connected" : "Not configured"}</span>;
+}
 
 type AppSetting = {
   var: string;
@@ -99,6 +113,30 @@ const GUIDES: IntegrationGuide[] = [
     ],
     links: [{ label: "GitHub PAT settings", href: "https://github.com/settings/tokens" }],
   },
+  {
+    id: "mail",
+    name: "Gmail",
+    required: false,
+    tabLabel: "Mail",
+    vars: ["MAIL_GOOGLE_ENABLED", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "OAUTH_REDIRECT_BASE", "APP_UI_BASE"],
+    steps: [
+      "Set MAIL_GOOGLE_ENABLED=true in .env at the repo root.",
+      "Open Google Cloud Console and create or select a project.",
+      "Enable the Gmail API for that project (APIs & Services → Library → Gmail API → Enable).",
+      "Create OAuth 2.0 credentials: APIs & Services → Credentials → Create credentials → OAuth client ID → Web application.",
+      "Add an authorized redirect URI: http://localhost:3001/api/mail/auth/google/callback (or your OAUTH_REDIRECT_BASE + /api/mail/auth/google/callback).",
+      "Copy the Client ID and Client Secret into GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.",
+      "If Vite runs on a port other than 5173, set APP_UI_BASE to match (e.g. http://localhost:5175).",
+      "Restart the dev server — the Mail tab appears once all three mail vars above are set.",
+      "Return here and click Connect Gmail (or use the Mail tab) to sign in once.",
+      "Unread mail loads automatically; tokens save to .mail-tokens.json (gitignored).",
+    ],
+    links: [
+      { label: "Google Cloud Console", href: "https://console.cloud.google.com/" },
+      { label: "Enable Gmail API", href: "https://console.cloud.google.com/apis/library/gmail.googleapis.com" },
+      { label: "OAuth credentials", href: "https://console.cloud.google.com/apis/credentials" },
+    ],
+  },
 ];
 
 const ALL_VARS = [
@@ -112,10 +150,17 @@ const ALL_VARS = [
   "NOTION_TASKS_DB_IDS",
   "NOTION_TASKS_DB_ID",
   "GITHUB_TOKEN",
+  "MAIL_GOOGLE_ENABLED",
+  "GOOGLE_CLIENT_ID",
+  "GOOGLE_CLIENT_SECRET",
+  "OAUTH_REDIRECT_BASE",
+  "APP_UI_BASE",
 ];
 
 export function EnvPage() {
   const { status, refresh } = useEnvStatus();
+  const [searchParams] = useSearchParams();
+  const mailError = searchParams.get("mailError");
 
   useEffect(() => {
     void refresh();
@@ -126,6 +171,7 @@ export function EnvPage() {
     status?.jira,
     status?.notion,
     status?.github,
+    status?.mail?.showTab,
   ].filter(Boolean).length;
 
   const envPath = status?.envFilePath ?? ".env";
@@ -144,8 +190,7 @@ export function EnvPage() {
         </div>
       </div>
 
-      <section className="panel env-intro">
-        <h3>Install (one time)</h3>
+      <CollapsibleSection title="Install (one time)" className="panel env-intro">
         <pre className="code-block">{`git clone https://github.com/iriecoffelt/cursor-ops.git
 cd cursor-ops
 npm run setup`}</pre>
@@ -164,10 +209,9 @@ npm start
             Repo root on this machine: <code className="inline-code">{repoRoot}</code>
           </p>
         ) : null}
-      </section>
+      </CollapsibleSection>
 
-      <section className="panel" style={{ marginTop: 16 }}>
-        <h3>App settings</h3>
+      <CollapsibleSection title="App settings">
         <p className="muted" style={{ marginTop: 0 }}>
           These don&apos;t require API keys. Changes apply after a server restart.
         </p>
@@ -189,10 +233,9 @@ npm start
             </div>
           ))}
         </div>
-      </section>
+      </CollapsibleSection>
 
-      <section className="panel" style={{ marginTop: 16 }}>
-        <h3>Nav tabs &amp; visibility</h3>
+      <CollapsibleSection title="Nav tabs & visibility">
         <ul className="env-var-list env-visibility-list">
           <li>
             <strong>Pulse</strong> and <strong>Setup</strong> — always visible
@@ -209,67 +252,76 @@ npm start
           <li>
             <strong>Agents</strong> — requires CURSOR_API_KEY
           </li>
+          <li>
+            <strong>Mail</strong> — requires MAIL_GOOGLE_ENABLED, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET; then sign in
+            under Gmail in Integrations
+          </li>
         </ul>
         {status?.notionDatabaseCount ? (
           <p className="muted" style={{ marginBottom: 0 }}>
             Notion: {status.notionDatabaseCount} database{status.notionDatabaseCount === 1 ? "" : "s"} configured.
           </p>
         ) : null}
-      </section>
+      </CollapsibleSection>
 
-      <div className="env-grid" style={{ marginTop: 16 }}>
-        {GUIDES.map((guide) => {
-          const ok = status ? Boolean(status[guide.id]) : null;
-          return (
-            <section className="panel env-card" key={guide.id}>
-              <div className="env-card-header">
-                <h3>{guide.name}</h3>
-                {ok === null ? null : (
-                  <span className={`env-badge ${ok ? "ok" : "missing"}`}>
-                    {ok ? "Connected" : "Not configured"}
-                  </span>
-                )}
-              </div>
-
-              <p className="muted env-tab-hint">
-                Enables the <strong>{guide.tabLabel}</strong> tab
-                {ok ? " · visible in nav" : " · hidden until configured"}
-              </p>
-
-              {!guide.required && <p className="muted env-optional">Optional integration</p>}
-
-              <h4 className="env-subhead">Variables</h4>
-              <ul className="env-var-list">
-                {guide.vars.map((v) => (
-                  <li key={v}>
-                    <code className="inline-code">{v}</code>
-                  </li>
-                ))}
-              </ul>
-
-              <h4 className="env-subhead">Steps</h4>
-              <ol className="env-steps">
-                {guide.steps.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </ol>
-
-              {guide.links.length > 0 && (
-                <p className="env-links">
-                  {guide.links.map((link) => (
-                    <a key={link.href} href={link.href} target="_blank" rel="noreferrer">
-                      {link.label}
-                    </a>
-                  ))}
+      <CollapsibleSection title="Integrations">
+        <p className="muted" style={{ marginTop: 0 }}>
+          Expand an integration below for variables, setup steps, and links. Optional — enable only what you use.
+        </p>
+        <div className="env-grid env-guides-grid">
+          {GUIDES.map((guide) => {
+            const ok = integrationConfigured(guide.id, status);
+            const badge =
+              guide.id === "mail" ? gmailGuideBadge(status) : statusBadge(ok);
+            return (
+              <CollapsibleSection
+                key={guide.id}
+                title={guide.name}
+                className="panel env-card"
+                badge={badge}
+                defaultOpen={guide.id === "mail" && Boolean(mailError)}
+              >
+                <p className="muted env-tab-hint">
+                  Enables the <strong>{guide.tabLabel}</strong> tab
+                  {ok ? " · visible in nav" : " · hidden until configured"}
                 </p>
-              )}
-            </section>
-          );
-        })}
-      </div>
 
-      <section className="panel" style={{ marginTop: 16 }}>
-        <h3>Local agents</h3>
+                {!guide.required ? <p className="muted env-optional">Optional integration</p> : null}
+
+                <h4 className="env-subhead">Variables</h4>
+                <ul className="env-var-list">
+                  {guide.vars.map((v) => (
+                    <li key={v}>
+                      <code className="inline-code">{v}</code>
+                    </li>
+                  ))}
+                </ul>
+
+                <h4 className="env-subhead">Steps</h4>
+                <ol className="env-steps">
+                  {guide.steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+
+                {guide.links.length > 0 ? (
+                  <p className="env-links">
+                    {guide.links.map((link) => (
+                      <a key={link.href} href={link.href} target="_blank" rel="noreferrer">
+                        {link.label}
+                      </a>
+                    ))}
+                  </p>
+                ) : null}
+
+                {guide.id === "mail" ? <GmailConnectSection mailError={mailError} /> : null}
+              </CollapsibleSection>
+            );
+          })}
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Local agents">
         <p className="muted">
           <code className="inline-code">LOCAL_AGENT_CWD</code> sets the default repo path when listing and launching local
           agents via the SDK. Agents started in other folders won&apos;t appear unless this path matches their{" "}
@@ -290,13 +342,14 @@ npm start
               active.
             </>
           ) : (
-            <>Set <code className="inline-code">CURSOR_API_KEY</code> to enable the Agents tab.</>
+            <>
+              Set <code className="inline-code">CURSOR_API_KEY</code> to enable the Agents tab.
+            </>
           )}
         </p>
-      </section>
+      </CollapsibleSection>
 
-      <section className="panel" style={{ marginTop: 16 }}>
-        <h3>All environment variables</h3>
+      <CollapsibleSection title="All environment variables">
         <div className="env-var-pills">
           {ALL_VARS.map((v) => (
             <code className="inline-code env-var-pill" key={v}>
@@ -307,7 +360,7 @@ npm start
         <p className="muted" style={{ marginTop: 12, marginBottom: 0 }}>
           See <code className="inline-code">.env.example</code> in the project root for a starter template.
         </p>
-      </section>
+      </CollapsibleSection>
     </>
   );
 }

@@ -1,5 +1,6 @@
 node_modules/
 dist/
 .env
+.mail-tokens.json
 .DS_Store
 *.log

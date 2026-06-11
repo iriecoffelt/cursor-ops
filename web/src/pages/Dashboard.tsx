@@ -108,25 +108,34 @@ export function DashboardPage() {
         {status?.github ? (
           <StatCard label="GitHub" value={t?.github ?? 0} hint={<Link to="/github">View all →</Link>} delay={3} />
         ) : null}
+        {status?.mail?.showTab ? (
+          <StatCard
+            label="Gmail unread"
+            value={t?.gmailUnread ?? 0}
+            hint={<Link to="/mail">Open inbox →</Link>}
+            variant={(t?.gmailUnread ?? 0) > 0 ? "warn" : "default"}
+            delay={4}
+          />
+        ) : null}
         {status?.cursor ? (
           <StatCard
             label="Active agents"
             value={t?.activeAgents ?? 0}
             hint={<Link to="/agents">Manage →</Link>}
-            delay={4}
+            delay={5}
           />
         ) : null}
         <StatCard
           label="Blockers"
           value={t?.blockers ?? 0}
           variant={(t?.blockers ?? 0) > 0 ? "danger" : "default"}
-          delay={5}
+          delay={6}
         />
         <StatCard
           label="Due / overdue"
           value={t?.dueToday ?? 0}
           variant={(t?.dueToday ?? 0) > 0 ? "warn" : "default"}
-          delay={6}
+          delay={7}
         />
       </div>
 

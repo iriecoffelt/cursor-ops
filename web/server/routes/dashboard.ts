@@ -9,18 +9,22 @@ import {
   partitionTasks,
 } from "../services/integrations.js";
 import { listAllAgents } from "../services/cursor.js";
+import { fetchMailInbox } from "../services/mail/index.js";
+import { mailSettings } from "../services/mail/settings.js";
 import type { DashboardData } from "../types.js";
 
 export const dashboardRouter = Router();
 
 dashboardRouter.get("/", async (_req, res) => {
   const warnings: string[] = [];
+  const mail = mailSettings();
 
-  const [jira, notion, githubResult, agentsResult] = await Promise.all([
+  const [jira, notion, githubResult, agentsResult, mailInbox] = await Promise.all([
     fetchJiraTasks(),
     fetchNotionTasks(),
     fetchGitHubTasks(),
     listAllAgents(),
+    mail.showMailTab ? fetchMailInbox() : Promise.resolve(null),
   ]);
 
   const githubItems = [
@@ -31,6 +35,11 @@ dashboardRouter.get("/", async (_req, res) => {
 
   for (const w of [jira.warning, ...notion.warnings, githubResult.warning, ...agentsResult.warnings]) {
     if (w) warnings.push(w);
+  }
+  if (mailInbox) {
+    for (const w of mailInbox.warnings) {
+      if (w) warnings.push(w);
+    }
   }
 
   const allTasks = [...jira.items, ...notion.items, ...githubItems];
@@ -51,6 +60,7 @@ dashboardRouter.get("/", async (_req, res) => {
       dueToday: dueToday.length,
       waitingOnMe: waitingOnMe.length,
       activeAgents: activeAgents.length,
+      gmailUnread: mailInbox?.unreadCount ?? 0,
     },
     jira: buildSourceStats(jira.items),
     notion: {
@@ -63,7 +73,7 @@ dashboardRouter.get("/", async (_req, res) => {
     dueToday: urgentDue,
     waitingOnMe,
     agents: activeAgents,
-    warnings,
+    warnings: [...new Set(warnings)],
   };
 
   res.json(data);

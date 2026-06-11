@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { getEnvFilePath, getLocalAgentCwd, getRepoRoot } from "../paths.js";
+import { mailSettings, oauthRedirectBase } from "../services/mail/settings.js";
+import { isProviderConnected } from "../services/mail/tokenStore.js";
 
 export const envRouter = Router();
 
@@ -11,6 +13,7 @@ envRouter.get("/status", (_req, res) => {
 
   const localCwd = getLocalAgentCwd();
   const localFromEnv = Boolean(process.env.LOCAL_AGENT_CWD?.trim());
+  const mail = mailSettings();
 
   res.json({
     appTitle: process.env.APP_TITLE?.trim() || "Cursor Ops",
@@ -27,5 +30,12 @@ envRouter.get("/status", (_req, res) => {
     github: Boolean(process.env.GITHUB_TOKEN?.trim()),
     localAgentCwd: localCwd,
     localAgentCwdFromEnv: localFromEnv,
+    mail: {
+      showTab: mail.showMailTab,
+      googleEnabled: mail.googleEnabled,
+      googleConfigured: mail.googleConfigured,
+      googleConnected: isProviderConnected("google"),
+      oauthRedirectBase: oauthRedirectBase(),
+    },
   });
 });
