@@ -15,7 +15,7 @@ cd cursor-ops
 npm run setup
 ```
 
-Setup creates `.env` from `.env.example` and installs dependencies.
+Setup creates `.env` from `.env.example` and installs dependencies in `web/`.
 
 Edit `.env` with your keys, then start:
 
@@ -24,6 +24,14 @@ npm start
 ```
 
 Open [http://localhost:5173](http://localhost:5173) → **Setup** to verify connections.
+
+## Project layout
+
+| Path | Purpose |
+|------|---------|
+| `.env` | All configuration (repo root) |
+| `web/` | React UI (Vite, port 5173) + Express API (port 3001) |
+| `scripts/setup.mjs` | First-time install helper |
 
 ## Environment variables
 
@@ -34,7 +42,7 @@ All config lives in **`.env` at the repo root**. Nav tabs appear only for config
 | `CURSOR_API_KEY` | Agents tab, cloud/local agents |
 | `APP_TITLE` | Header + browser tab (default: Cursor Ops) |
 | `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` | Jira tab |
-| `NOTION_TOKEN` + `NOTION_TASKS_DB_IDS` | Notion tab |
+| `NOTION_TOKEN` + `NOTION_TASKS_DB_IDS` (or legacy `NOTION_TASKS_DB_ID`) | Notion tab |
 | `GITHUB_TOKEN` | GitHub tab |
 | `MAIL_GOOGLE_ENABLED` + `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` | Mail tab + Gmail unread on Pulse |
 | `LOCAL_AGENT_CWD` | Local agent working directory (defaults to repo root) |
@@ -47,6 +55,8 @@ Get `CURSOR_API_KEY` from [Cursor → Integrations](https://cursor.com/dashboard
 ```
 NOTION_TASKS_DB_IDS=Sprint 12|abc123...,iOS App Ideas|def456...
 ```
+
+Labels are optional — omit them and the app fetches each database title from Notion. For a single board, `NOTION_TASKS_DB_ID` still works.
 
 Restart the dev server after changing `.env`.
 
@@ -64,17 +74,22 @@ Restart the dev server after changing `.env`.
 
 | Command | Description |
 |---------|-------------|
-| `npm run setup` | First-time install (`.env` + `npm install`) |
-| `npm start` | Dev server (UI :5173, API :3001) |
+| `npm run setup` | First-time install (`.env` + `npm install` in `web/`) |
+| `npm start` / `npm run dev` | Dev server (UI :5173, API :3001) |
 | `npm run build` | Production build |
+| `npm run preview` | Preview production build |
 
 ## Features
 
-- **Pulse** — open work, blockers, due/overdue, charts, running agents, Gmail unread count
-- **Jira / Notion / GitHub** — per-source task views
+Data refreshes automatically every 60 seconds (agents list every 30s). Use **Refresh** on any page for an immediate reload.
+
+- **Pulse** — open work totals, blockers, due/overdue, status charts, Notion board breakdown, waiting-on-me items, running agents, Gmail unread count
+- **Jira** — blockers, due today/overdue, due within 7 days, and all assigned issues (sorted by due date)
+- **Notion** — same urgency sections as Jira, plus tasks grouped by board
+- **GitHub** — PR reviews requested, your open PRs, and assigned issues
 - **Mail** — unread Gmail inbox
-- **Agents** — launch cloud or local Cursor agents
-- **Setup** — collapsible integration guides and connection status
+- **Agents** — launch cloud or local Cursor agents, stream cloud run output, cancel runs, open in Cursor
+- **Setup** — collapsible integration guides, connection status, and Gmail OAuth connect
 
 ## Security
 
