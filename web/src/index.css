@@ -114,11 +114,11 @@ a:hover {
 .cyber-sun-glow {
   position: absolute;
   left: 50%;
-  bottom: -8%;
+  bottom: 0;
   z-index: 0;
   width: min(760px, 115vw);
   height: min(320px, 45vw);
-  transform: translateX(-50%);
+  transform: translate(-50%, 35%);
   border-radius: 50%;
   background: radial-gradient(
     ellipse at center,
@@ -132,11 +132,11 @@ a:hover {
 .cyber-sun {
   position: absolute;
   left: 50%;
-  bottom: -34%;
+  bottom: 0;
   z-index: 1;
   width: min(580px, 92vw);
   height: min(580px, 92vw);
-  transform: translateX(-50%);
+  transform: translate(-50%, 50%);
   border-radius: 50%;
   background-color: #ff9500;
   background-image:
