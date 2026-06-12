@@ -35,6 +35,48 @@ export type GitHubTaskResponse = {
   warnings: string[];
 };
 
+export type WebexMeetingItem = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  webLink?: string;
+  state: string;
+};
+
+export type WebexMeetingGap = {
+  afterTitle: string;
+  beforeTitle: string;
+  start: string;
+  end: string;
+  minutes: number;
+};
+
+export type WebexTodaySummary = {
+  fetchedAt: string;
+  meetings: WebexMeetingItem[];
+  nextMeeting?: {
+    id: string;
+    title: string;
+    start: string;
+    end: string;
+    webLink?: string;
+    startsInMinutes: number;
+    inProgress: boolean;
+  };
+  gaps: WebexMeetingGap[];
+  remainingCount: number;
+};
+
+export type DashboardMailPreview = {
+  unreadCount: number;
+  messages: Array<{
+    subject: string;
+    from: string;
+    url?: string;
+  }>;
+};
+
 export type DashboardData = {
   fetchedAt: string;
   totals: {
@@ -44,9 +86,12 @@ export type DashboardData = {
     github: number;
     blockers: number;
     dueToday: number;
+    dueThisWeek: number;
     waitingOnMe: number;
     activeAgents: number;
     gmailUnread: number;
+    meetingsToday: number;
+    meetingsRemaining: number;
   };
   jira: SourceStats;
   notion: SourceStats & {
@@ -56,8 +101,11 @@ export type DashboardData = {
   github: SourceStats;
   blockers: TaskItem[];
   dueToday: TaskItem[];
+  dueThisWeek: TaskItem[];
   waitingOnMe: TaskItem[];
   agents: AgentSummary[];
+  mail?: DashboardMailPreview;
+  webex?: WebexTodaySummary;
   warnings: string[];
 };
 

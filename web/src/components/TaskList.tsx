@@ -1,4 +1,5 @@
 import type { TaskItem } from "../../server/types";
+import { TaskQuickActions } from "./TaskQuickActions";
 import {
   formatDueLabel,
   getTaskUrgencies,
@@ -8,11 +9,21 @@ import {
   type TaskUrgency,
 } from "../utils/taskUrgency";
 
+export type TaskListFocusControls = {
+  isPinned: (item: TaskItem) => boolean;
+  onPin: (item: TaskItem) => void;
+  onUnpin: (item: TaskItem) => void;
+  canPinMore: boolean;
+};
+
 type TaskListProps = {
   items: TaskItem[];
   emptyLabel: string;
   sortByUrgency?: boolean;
   sortByDueDate?: boolean;
+  focus?: TaskListFocusControls;
+  quickActions?: boolean;
+  onTaskUpdated?: () => void;
 };
 
 function urgencyClass(tags: TaskUrgency[]): string {
@@ -27,6 +38,9 @@ export function TaskList({
   emptyLabel,
   sortByUrgency: shouldSortByUrgency = false,
   sortByDueDate: shouldSortByDueDate = false,
+  focus,
+  quickActions = false,
+  onTaskUpdated,
 }: TaskListProps) {
   if (!items.length) return <p className="empty">{emptyLabel}</p>;
 
@@ -39,6 +53,8 @@ export function TaskList({
       {visible.map((item) => {
         const tags = getTaskUrgencies(item);
         const dueLabel = formatDueLabel(item.due);
+
+        const pinned = focus?.isPinned(item) ?? false;
 
         return (
           <li
@@ -55,14 +71,34 @@ export function TaskList({
                   ))}
                 </div>
               ) : null}
-              <div className="task-title">
-                {item.url ? (
-                  <a href={item.url} target="_blank" rel="noreferrer">
-                    {item.title}
-                  </a>
-                ) : (
-                  item.title
-                )}
+              <div className="task-title-row">
+                {focus ? (
+                  <button
+                    type="button"
+                    className={`focus-pin-btn${pinned ? " is-pinned" : ""}`}
+                    aria-label={pinned ? `Unpin ${item.title}` : `Pin ${item.title} to today's focus`}
+                    title={
+                      pinned
+                        ? "Unpin from focus"
+                        : focus.canPinMore
+                          ? "Pin to today's focus"
+                          : "Focus list is full (5 max)"
+                    }
+                    disabled={!pinned && !focus.canPinMore}
+                    onClick={() => (pinned ? focus.onUnpin(item) : focus.onPin(item))}
+                  >
+                    {pinned ? "★" : "☆"}
+                  </button>
+                ) : null}
+                <div className="task-title">
+                  {item.url ? (
+                    <a href={item.url} target="_blank" rel="noreferrer">
+                      {item.title}
+                    </a>
+                  ) : (
+                    item.title
+                  )}
+                </div>
               </div>
             </div>
             <div className="task-meta">
@@ -79,6 +115,9 @@ export function TaskList({
                 </>
               ) : null}
             </div>
+            {quickActions && (item.source === "jira" || item.source === "notion") ? (
+              <TaskQuickActions item={item} onUpdated={onTaskUpdated} />
+            ) : null}
           </li>
         );
       })}

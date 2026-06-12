@@ -2,10 +2,11 @@ import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CollapsibleSection } from "../components/CollapsibleSection";
 import { GmailConnectSection, gmailGuideBadge } from "../components/MailSettingsPanel";
+import { WebexConnectSection, webexGuideBadge } from "../components/WebexConnectSection";
 import { useEnvStatus } from "../context/EnvStatusContext";
 import type { EnvStatus } from "../api";
 
-type IntegrationId = "cursor" | "jira" | "notion" | "github" | "mail";
+type IntegrationId = "cursor" | "jira" | "notion" | "github" | "webex" | "mail";
 
 type IntegrationGuide = {
   id: IntegrationId;
@@ -20,6 +21,7 @@ type IntegrationGuide = {
 function integrationConfigured(id: IntegrationId, status: EnvStatus | null) {
   if (!status) return null;
   if (id === "mail") return status.mail.showTab;
+  if (id === "webex") return status.webex.connected;
   return Boolean(status[id]);
 }
 
@@ -114,6 +116,26 @@ const GUIDES: IntegrationGuide[] = [
     links: [{ label: "GitHub PAT settings", href: "https://github.com/settings/tokens" }],
   },
   {
+    id: "webex",
+    name: "Webex Meetings",
+    required: false,
+    tabLabel: "Pulse",
+    vars: ["WEBEX_ENABLED", "WEBEX_CLIENT_ID", "WEBEX_CLIENT_SECRET", "OAUTH_REDIRECT_BASE"],
+    steps: [
+      "At developer.webex.com → My Webex Apps, create an Integration (not a personal token).",
+      "Add scope meeting:schedules_read (and spark:people_read if you want your email shown).",
+      "Set Redirect URI to OAUTH_REDIRECT_BASE + /api/webex/auth/callback (see Connect account below).",
+      "Copy Client ID and Client Secret into WEBEX_CLIENT_ID and WEBEX_CLIENT_SECRET in .env.",
+      "Set WEBEX_ENABLED=true and restart the dev server.",
+      "Expand Webex below and click Connect Webex — tokens save to .webex-tokens.json (gitignored).",
+      "Pulse shows today's meetings with join links and gaps; access auto-refreshes via refresh token.",
+    ],
+    links: [
+      { label: "Create a Webex integration", href: "https://developer.webex.com/docs/integrations" },
+      { label: "List Meetings API", href: "https://developer.webex.com/docs/api/v1/meetings/list-meetings" },
+    ],
+  },
+  {
     id: "mail",
     name: "Gmail",
     required: false,
@@ -150,6 +172,9 @@ const ALL_VARS = [
   "NOTION_TASKS_DB_IDS",
   "NOTION_TASKS_DB_ID",
   "GITHUB_TOKEN",
+  "WEBEX_ENABLED",
+  "WEBEX_CLIENT_ID",
+  "WEBEX_CLIENT_SECRET",
   "MAIL_GOOGLE_ENABLED",
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
@@ -161,6 +186,7 @@ export function EnvPage() {
   const { status, refresh } = useEnvStatus();
   const [searchParams] = useSearchParams();
   const mailError = searchParams.get("mailError");
+  const webexError = searchParams.get("webexError");
 
   useEffect(() => {
     void refresh();
@@ -172,6 +198,7 @@ export function EnvPage() {
     status?.notion,
     status?.github,
     status?.mail?.showTab,
+    status?.webex?.connected,
   ].filter(Boolean).length;
 
   const envPath = status?.envFilePath ?? ".env";
@@ -256,6 +283,10 @@ npm start
             <strong>Mail</strong> — requires MAIL_GOOGLE_ENABLED, GOOGLE_CLIENT_ID, and GOOGLE_CLIENT_SECRET; then sign in
             under Gmail in Integrations
           </li>
+          <li>
+            <strong>Webex on Pulse</strong> — requires WEBEX_ENABLED, WEBEX_CLIENT_ID, and WEBEX_CLIENT_SECRET; then sign
+            in under Webex in Integrations
+          </li>
         </ul>
         {status?.notionDatabaseCount ? (
           <p className="muted" style={{ marginBottom: 0 }}>
@@ -272,14 +303,18 @@ npm start
           {GUIDES.map((guide) => {
             const ok = integrationConfigured(guide.id, status);
             const badge =
-              guide.id === "mail" ? gmailGuideBadge(status) : statusBadge(ok);
+              guide.id === "mail"
+                ? gmailGuideBadge(status)
+                : guide.id === "webex"
+                  ? webexGuideBadge(status)
+                  : statusBadge(ok);
             return (
               <CollapsibleSection
                 key={guide.id}
                 title={guide.name}
                 className="panel env-card"
                 badge={badge}
-                defaultOpen={guide.id === "mail" && Boolean(mailError)}
+                defaultOpen={(guide.id === "mail" && Boolean(mailError)) || (guide.id === "webex" && Boolean(webexError))}
               >
                 <p className="muted env-tab-hint">
                   Enables the <strong>{guide.tabLabel}</strong> tab
@@ -315,6 +350,7 @@ npm start
                 ) : null}
 
                 {guide.id === "mail" ? <GmailConnectSection mailError={mailError} /> : null}
+                {guide.id === "webex" ? <WebexConnectSection webexError={webexError} /> : null}
               </CollapsibleSection>
             );
           })}
