@@ -2,6 +2,7 @@ import type { TaskItem } from "../../server/types";
 import {
   formatDueLabel,
   getTaskUrgencies,
+  sortByDueDate,
   sortByUrgency,
   urgencyLabel,
   type TaskUrgency,
@@ -11,6 +12,7 @@ type TaskListProps = {
   items: TaskItem[];
   emptyLabel: string;
   sortByUrgency?: boolean;
+  sortByDueDate?: boolean;
 };
 
 function urgencyClass(tags: TaskUrgency[]): string {
@@ -20,10 +22,17 @@ function urgencyClass(tags: TaskUrgency[]): string {
   return "";
 }
 
-export function TaskList({ items, emptyLabel, sortByUrgency: shouldSort = false }: TaskListProps) {
+export function TaskList({
+  items,
+  emptyLabel,
+  sortByUrgency: shouldSortByUrgency = false,
+  sortByDueDate: shouldSortByDueDate = false,
+}: TaskListProps) {
   if (!items.length) return <p className="empty">{emptyLabel}</p>;
 
-  const visible = shouldSort ? sortByUrgency(items) : items;
+  let visible = items;
+  if (shouldSortByDueDate) visible = sortByDueDate(items);
+  else if (shouldSortByUrgency) visible = sortByUrgency(items);
 
   return (
     <ul className="task-list">

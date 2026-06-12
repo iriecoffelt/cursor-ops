@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchNotionTasks, type TaskListResponse } from "../api";
 import { TaskList } from "../components/TaskList";
 import type { TaskItem } from "../../server/types";
+import { getDueWithin7Days } from "../utils/taskUrgency";
 
 const REFRESH_MS = 60_000;
 
@@ -39,6 +40,7 @@ export function NotionPage() {
     return () => clearInterval(id);
   }, [load]);
 
+  const dueWithin7Days = useMemo(() => getDueWithin7Days(data?.items ?? []), [data?.items]);
   const groups = useMemo(() => groupByBoard(data?.items ?? []), [data?.items]);
 
   return (
@@ -65,18 +67,22 @@ export function NotionPage() {
       <div className="grid-2">
         <section className="panel panel-critical">
           <h3>Blockers ({data?.blockers.length ?? 0})</h3>
-          <TaskList items={data?.blockers ?? []} emptyLabel="No blockers" />
+          <TaskList items={data?.blockers ?? []} emptyLabel="No blockers" sortByDueDate />
         </section>
         <section className="panel panel-warn">
           <h3>Due today / overdue ({data?.dueToday.length ?? 0})</h3>
-          <TaskList items={data?.dueToday ?? []} emptyLabel="Nothing due" />
+          <TaskList items={data?.dueToday ?? []} emptyLabel="Nothing due" sortByDueDate />
+        </section>
+        <section className="panel" style={{ gridColumn: "1 / -1" }}>
+          <h3>Due within 7 days ({dueWithin7Days.length})</h3>
+          <TaskList items={dueWithin7Days} emptyLabel="Nothing due this week" sortByDueDate />
         </section>
       </div>
 
       {groups.map(([board, items]) => (
         <section className="panel" key={board} style={{ marginTop: 16 }}>
           <h3>{board} ({items.length})</h3>
-          <TaskList items={items} emptyLabel="No tasks" sortByUrgency />
+          <TaskList items={items} emptyLabel="No tasks" sortByDueDate />
         </section>
       ))}
 

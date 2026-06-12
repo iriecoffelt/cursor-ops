@@ -55,6 +55,38 @@ export function sortByUrgency(items: TaskItem[]): TaskItem[] {
   return [...items].sort((a, b) => urgencyScore(b) - urgencyScore(a));
 }
 
+function dueDateSortValue(due?: string): number {
+  if (!due) return Number.POSITIVE_INFINITY;
+  return parseLocalDate(due).getTime();
+}
+
+/** Overdue first (oldest first), then upcoming by date, no due date last. */
+export function sortByDueDate(items: TaskItem[]): TaskItem[] {
+  return [...items].sort((a, b) => {
+    const diff = dueDateSortValue(a.due) - dueDateSortValue(b.due);
+    if (diff !== 0) return diff;
+    return a.title.localeCompare(b.title);
+  });
+}
+
+export function isDueWithinDays(due?: string, days = 7): boolean {
+  if (!due) return false;
+  const d = parseLocalDate(due);
+  const today = startOfToday();
+  if (d < today) return false;
+  const end = new Date(today);
+  end.setDate(end.getDate() + days);
+  return d <= end;
+}
+
+export function getDueWithin7Days(items: TaskItem[]): TaskItem[] {
+  return sortByDueDate(
+    items.filter(
+      (t) => t.due && !isOverdue(t.due) && !isDueToday(t.due) && isDueWithinDays(t.due, 7),
+    ),
+  );
+}
+
 function formatShortDate(iso: string): string {
   return parseLocalDate(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
