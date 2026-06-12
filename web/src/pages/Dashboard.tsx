@@ -3,14 +3,20 @@ import { Link } from "react-router-dom";
 import { fetchDashboard, type DashboardData } from "../api";
 import { BarChart } from "../components/BarChart";
 import { StackedBoardChart } from "../components/StackedBoardChart";
+import { FocusListPanel } from "../components/FocusListPanel";
+import { MeetingsTodayPanel } from "../components/MeetingsTodayPanel";
+import { MorningBriefPanel } from "../components/MorningBriefPanel";
 import { StatCard } from "../components/StatCard";
-import { TaskList } from "../components/TaskList";
+import { TaskList, type TaskListFocusControls } from "../components/TaskList";
 import { useEnvStatus } from "../context/EnvStatusContext";
+import { useFocusList } from "../hooks/useFocusList";
+import { formatStartsIn } from "../utils/meetings";
 
 const REFRESH_MS = 60_000;
 
 export function DashboardPage() {
   const { status } = useEnvStatus();
+  const focusList = useFocusList();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +48,27 @@ export function DashboardPage() {
     .filter(Boolean)
     .join(" + ");
 
+  const focus: TaskListFocusControls = {
+    isPinned: focusList.isPinned,
+    onPin: focusList.pin,
+    onUnpin: focusList.unpin,
+    canPinMore: focusList.canPinMore,
+  };
+
+  const taskListProps = {
+    quickActions: true,
+    onTaskUpdated: () => void load(),
+  };
+
+  const nextMeeting = data?.webex?.nextMeeting;
+  const nextMeetingHint = nextMeeting
+    ? nextMeeting.title.length > 42
+      ? `${nextMeeting.title.slice(0, 42)}…`
+      : nextMeeting.title
+    : data?.webex
+      ? "No more meetings today"
+      : undefined;
+
   return (
     <>
       <div className="page-header hero-header">
@@ -67,7 +94,12 @@ export function DashboardPage() {
 
       {error && <div className="warnings">{error}</div>}
 
-      <div className="stat-grid">
+      <MorningBriefPanel data={data} loading={loading} />
+
+      <FocusListPanel data={data} focus={focusList} onTaskUpdated={() => void load()} />
+
+      <div className="pulse-metrics-row">
+        <div className="stat-grid">
         <StatCard
           label="Open work"
           value={t?.open ?? 0}
@@ -92,26 +124,52 @@ export function DashboardPage() {
             delay={4}
           />
         ) : null}
+        {status?.webex?.showOnPulse ? (
+          <StatCard
+            label="Next meeting"
+            value={
+              nextMeeting
+                ? formatStartsIn(nextMeeting.startsInMinutes, nextMeeting.inProgress)
+                : "—"
+            }
+            hint={nextMeetingHint}
+            variant={nextMeeting?.inProgress ? "warn" : "default"}
+            delay={5}
+          />
+        ) : null}
         {status?.cursor ? (
           <StatCard
             label="Active agents"
             value={t?.activeAgents ?? 0}
             hint={<Link to="/agents">Manage →</Link>}
-            delay={5}
+            delay={6}
           />
         ) : null}
         <StatCard
           label="Blockers"
           value={t?.blockers ?? 0}
           variant={(t?.blockers ?? 0) > 0 ? "danger" : "default"}
-          delay={6}
+          delay={7}
         />
         <StatCard
           label="Due / overdue"
           value={t?.dueToday ?? 0}
           variant={(t?.dueToday ?? 0) > 0 ? "warn" : "default"}
-          delay={7}
+          delay={8}
         />
+        {status?.jira || status?.notion ? (
+          <StatCard
+            label="Due this week"
+            value={t?.dueThisWeek ?? 0}
+            hint="Next 7 days · Jira + Notion"
+            delay={9}
+          />
+        ) : null}
+        </div>
+
+        {status?.webex?.showOnPulse ? (
+          <MeetingsTodayPanel webex={data?.webex} dueTodayCount={t?.dueToday ?? 0} />
+        ) : null}
       </div>
 
       {(data?.blockers.length ?? 0) > 0 || (data?.dueToday.length ?? 0) > 0 ? (
@@ -125,17 +183,33 @@ export function DashboardPage() {
               {(data?.blockers.length ?? 0) > 0 ? (
                 <section className="panel panel-critical panel-glow-danger">
                   <h3>Blockers ({data?.blockers.length ?? 0})</h3>
-                  <TaskList items={data?.blockers ?? []} emptyLabel="No blockers" />
+                  <TaskList items={data?.blockers ?? []} emptyLabel="No blockers" focus={focus} {...taskListProps} />
                 </section>
               ) : null}
               {(data?.dueToday.length ?? 0) > 0 ? (
                 <section className="panel panel-warn panel-glow-warn">
                   <h3>Due today / overdue ({data?.dueToday.length ?? 0})</h3>
-                  <TaskList items={data?.dueToday ?? []} emptyLabel="Nothing due" />
+                  <TaskList items={data?.dueToday ?? []} emptyLabel="Nothing due" focus={focus} {...taskListProps} />
                 </section>
               ) : null}
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {status?.jira || status?.notion ? (
+        <section className="panel panel-week" style={{ marginTop: 16 }}>
+          <h3>Due this week ({data?.dueThisWeek.length ?? 0})</h3>
+          <p className="muted" style={{ marginTop: -4, marginBottom: 12 }}>
+            Jira & Notion due in the next 7 days — not today or overdue
+          </p>
+          <TaskList
+            items={data?.dueThisWeek ?? []}
+            emptyLabel="Nothing due this week"
+            sortByDueDate
+            focus={focus}
+            {...taskListProps}
+          />
         </section>
       ) : null}
 
@@ -186,7 +260,7 @@ export function DashboardPage() {
       <div className={status?.cursor ? "grid-2" : undefined} style={{ marginTop: 16 }}>
         <section className="panel">
           <h3>Waiting on me</h3>
-          <TaskList items={data?.waitingOnMe ?? []} emptyLabel="Nothing waiting" />
+          <TaskList items={data?.waitingOnMe ?? []} emptyLabel="Nothing waiting" focus={focus} {...taskListProps} />
         </section>
         {status?.cursor ? (
           <section className="panel">

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { getEnvFilePath, getLocalAgentCwd, getRepoRoot } from "../paths.js";
 import { mailSettings, oauthRedirectBase } from "../services/mail/settings.js";
+import { webexSettings } from "../services/webex/settings.js";
 import { isProviderConnected } from "../services/mail/tokenStore.js";
 
 export const envRouter = Router();
@@ -14,6 +15,7 @@ envRouter.get("/status", (_req, res) => {
   const localCwd = getLocalAgentCwd();
   const localFromEnv = Boolean(process.env.LOCAL_AGENT_CWD?.trim());
   const mail = mailSettings();
+  const webex = webexSettings();
 
   res.json({
     appTitle: process.env.APP_TITLE?.trim() || "Cursor Ops",
@@ -35,6 +37,13 @@ envRouter.get("/status", (_req, res) => {
       googleEnabled: mail.googleEnabled,
       googleConfigured: mail.googleConfigured,
       googleConnected: isProviderConnected("google"),
+      oauthRedirectBase: oauthRedirectBase(),
+    },
+    webex: {
+      showOnPulse: webex.showOnPulse,
+      enabled: webex.enabled,
+      configured: webex.configured,
+      connected: webex.connected,
       oauthRedirectBase: oauthRedirectBase(),
     },
   });

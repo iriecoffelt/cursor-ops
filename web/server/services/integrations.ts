@@ -113,8 +113,21 @@ function extractNotionDue(properties?: Record<string, unknown>): string | undefi
 
 function isDoneStatus(status?: string): boolean {
   if (!status) return false;
-  const s = status.toLowerCase();
-  return s.includes("done") || s.includes("complete") || s === "closed";
+  const s = status.toLowerCase().trim();
+  return (
+    s.includes("done") ||
+    s.includes("complete") ||
+    s.includes("closed") ||
+    s.includes("resolved") ||
+    s.includes("cancelled") ||
+    s.includes("canceled") ||
+    s.includes("won't do") ||
+    s.includes("wont do")
+  );
+}
+
+export function filterOpenTasks(items: TaskItem[]): TaskItem[] {
+  return items.filter((item) => !isDoneStatus(item.status));
 }
 
 async function fetchNotionDatabaseTitle(token: string, dbId: string): Promise<string> {
@@ -237,7 +250,8 @@ export async function fetchJiraTasks(): Promise<{ items: TaskItem[]; warning?: s
     return { items: [], warning: "Jira not configured (JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN)" };
   }
 
-  const url = `${base.replace(/\/$/, "")}/rest/api/3/search/jql?jql=${encodeURIComponent("assignee = currentUser() AND status != Done ORDER BY updated DESC")}&maxResults=25&fields=summary,status,priority,duedate`;
+  const jql = "assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC";
+  const url = `${base.replace(/\/$/, "")}/rest/api/3/search/jql?jql=${encodeURIComponent(jql)}&maxResults=50&fields=summary,status,priority,duedate`;
 
   const res = await fetch(url, {
     headers: {
@@ -262,15 +276,17 @@ export async function fetchJiraTasks(): Promise<{ items: TaskItem[]; warning?: s
     }>;
   };
 
-  const items: TaskItem[] = (data.issues ?? []).map((issue) => ({
-    id: issue.key,
-    title: issue.fields?.summary ?? issue.key,
-    source: "jira",
-    status: issue.fields?.status?.name,
-    priority: issue.fields?.priority?.name,
-    due: issue.fields?.duedate,
-    url: `${base.replace(/\/$/, "")}/browse/${issue.key}`,
-  }));
+  const items = filterOpenTasks(
+    (data.issues ?? []).map((issue) => ({
+      id: issue.key,
+      title: issue.fields?.summary ?? issue.key,
+      source: "jira" as const,
+      status: issue.fields?.status?.name,
+      priority: issue.fields?.priority?.name,
+      due: issue.fields?.duedate,
+      url: `${base.replace(/\/$/, "")}/browse/${issue.key}`,
+    })),
+  );
 
   return { items };
 }
@@ -315,7 +331,7 @@ export async function fetchNotionTasks(): Promise<{ items: TaskItem[]; warnings:
     }
   }
 
-  return { items, warnings };
+  return { items: filterOpenTasks(items), warnings };
 }
 
 export async function fetchGitHubPRs(): Promise<{ items: TaskItem[]; warning?: string }> {
@@ -396,19 +412,52 @@ export async function fetchGitHubTasks(): Promise<{
   };
 }
 
+function parseLocalDate(iso: string): Date {
+  const [y, m, d] = iso.split("T")[0].split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 function isToday(iso?: string) {
   if (!iso) return false;
-  const d = new Date(iso);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  const d = parseLocalDate(iso);
+  const today = startOfToday();
+  return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
 }
 
 function isOverdue(iso?: string) {
   if (!iso) return false;
-  const d = new Date(iso);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  return d < now;
+  return parseLocalDate(iso) < startOfToday();
+}
+
+function isDueWithinDays(due: string, days: number): boolean {
+  const d = parseLocalDate(due);
+  const today = startOfToday();
+  if (d <= today) return false;
+  const end = new Date(today);
+  end.setDate(end.getDate() + days);
+  return d <= end;
+}
+
+/** Jira/Notion tasks due in the next 7 days, excluding today and overdue. */
+export function getDueThisWeek(items: TaskItem[]): TaskItem[] {
+  return items
+    .filter(
+      (t) =>
+        (t.source === "jira" || t.source === "notion") &&
+        t.due &&
+        !isOverdue(t.due) &&
+        !isToday(t.due) &&
+        isDueWithinDays(t.due, 7),
+    )
+    .sort((a, b) => {
+      const diff = parseLocalDate(a.due!).getTime() - parseLocalDate(b.due!).getTime();
+      return diff !== 0 ? diff : a.title.localeCompare(b.title);
+    });
 }
 
 export function partitionTasks(all: TaskItem[]) {
@@ -464,4 +513,162 @@ export function buildSourceStats(items: TaskItem[]): SourceStats {
     dueToday: dueToday.length,
     byStatus: countByStatus(items),
   };
+}
+
+const IN_PROGRESS_PATTERNS = [/in\s*progress/i, /^doing$/i, /^started$/i, /^active$/i, /^working$/i];
+
+type NotionSchemaProperty = {
+  type: string;
+  status?: { options?: Array<{ name: string }> };
+  select?: { options?: Array<{ name: string }> };
+};
+
+function findNotionStatusSchema(properties: Record<string, NotionSchemaProperty>) {
+  for (const key of ["Status", "State", "Done"]) {
+    const prop = properties[key];
+    if (!prop) continue;
+    if (prop.type === "status" && prop.status?.options?.length) {
+      return { name: key, type: "status" as const, options: prop.status.options };
+    }
+    if (prop.type === "select" && prop.select?.options?.length) {
+      return { name: key, type: "select" as const, options: prop.select.options };
+    }
+  }
+
+  for (const [name, prop] of Object.entries(properties)) {
+    if (prop.type === "status" && prop.status?.options?.length) {
+      return { name, type: "status" as const, options: prop.status.options };
+    }
+    if (prop.type === "select" && prop.select?.options?.length) {
+      return { name, type: "select" as const, options: prop.select.options };
+    }
+  }
+
+  return null;
+}
+
+function pickInProgressStatus(
+  options: Array<{ name: string }>,
+  preferred?: string,
+): string | undefined {
+  if (preferred && options.some((option) => option.name === preferred)) {
+    return preferred;
+  }
+  for (const pattern of IN_PROGRESS_PATTERNS) {
+    const match = options.find((option) => pattern.test(option.name));
+    if (match) return match.name;
+  }
+  return undefined;
+}
+
+export async function setNotionPageStatus(
+  pageId: string,
+  preferredStatus?: string,
+): Promise<{ ok: true; status: string } | { ok: false; error: string }> {
+  const token = process.env.NOTION_TOKEN;
+  if (!token) {
+    return { ok: false, error: "Notion not configured (NOTION_TOKEN)" };
+  }
+
+  const pageRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    headers: NOTION_HEADERS(token),
+  });
+  if (!pageRes.ok) {
+    const body = await pageRes.text();
+    return { ok: false, error: `Notion page lookup failed: ${pageRes.status} ${body.slice(0, 120)}` };
+  }
+
+  const page = (await pageRes.json()) as {
+    parent?: { type?: string; database_id?: string };
+  };
+  const databaseId = page.parent?.database_id;
+  if (!databaseId) {
+    return { ok: false, error: "Task is not in a Notion database — cannot update status" };
+  }
+
+  const dbRes = await fetch(`https://api.notion.com/v1/databases/${databaseId}`, {
+    headers: NOTION_HEADERS(token),
+  });
+  if (!dbRes.ok) {
+    const body = await dbRes.text();
+    return { ok: false, error: `Notion database lookup failed: ${dbRes.status} ${body.slice(0, 120)}` };
+  }
+
+  const database = (await dbRes.json()) as { properties?: Record<string, NotionSchemaProperty> };
+  const statusProp = findNotionStatusSchema(database.properties ?? {});
+  if (!statusProp) {
+    return { ok: false, error: "No status property found on this Notion database" };
+  }
+
+  const statusName = pickInProgressStatus(statusProp.options, preferredStatus);
+  if (!statusName) {
+    const available = statusProp.options.map((option) => option.name).join(", ");
+    return {
+      ok: false,
+      error: `No in-progress status found. Available: ${available}`,
+    };
+  }
+
+  const properties =
+    statusProp.type === "status"
+      ? { [statusProp.name]: { status: { name: statusName } } }
+      : { [statusProp.name]: { select: { name: statusName } } };
+
+  const patchRes = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    method: "PATCH",
+    headers: NOTION_HEADERS(token),
+    body: JSON.stringify({ properties }),
+  });
+
+  if (!patchRes.ok) {
+    const body = await patchRes.text();
+    return { ok: false, error: `Notion update failed: ${patchRes.status} ${body.slice(0, 120)}` };
+  }
+
+  return { ok: true, status: statusName };
+}
+
+export async function addJiraComment(
+  issueKey: string,
+  text: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const base = process.env.JIRA_BASE_URL;
+  const email = process.env.JIRA_EMAIL;
+  const token = process.env.JIRA_API_TOKEN;
+  const body = text.trim();
+
+  if (!base || !email || !token) {
+    return { ok: false, error: "Jira not configured (JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN)" };
+  }
+  if (!body) {
+    return { ok: false, error: "Comment cannot be empty" };
+  }
+
+  const res = await fetch(`${base.replace(/\/$/, "")}/rest/api/3/issue/${issueKey}/comment`, {
+    method: "POST",
+    headers: {
+      Authorization: authHeader(email, token),
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      body: {
+        type: "doc",
+        version: 1,
+        content: [
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: body }],
+          },
+        ],
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    return { ok: false, error: `Jira comment failed: ${res.status} ${errBody.slice(0, 120)}` };
+  }
+
+  return { ok: true };
 }

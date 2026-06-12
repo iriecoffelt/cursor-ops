@@ -31,7 +31,31 @@ export type EnvStatus = {
     googleConnected: boolean;
     oauthRedirectBase: string;
   };
+  webex: {
+    showOnPulse: boolean;
+    enabled: boolean;
+    configured: boolean;
+    connected: boolean;
+    oauthRedirectBase: string;
+  };
 };
+
+export type WebexStatusResponse = {
+  enabled: boolean;
+  configured: boolean;
+  connected: boolean;
+  email?: string;
+  warning?: string;
+  oauthRedirectBase?: string;
+};
+
+export function fetchWebexStatus() {
+  return json<WebexStatusResponse>("/api/webex/status");
+}
+
+export function disconnectWebex() {
+  return json<{ ok: boolean }>("/api/webex/disconnect", { method: "POST" });
+}
 
 export type MailProviderStatus = {
   enabled: boolean;
@@ -91,6 +115,22 @@ export function fetchNotionTasks() {
 
 export function fetchGitHubTasks() {
   return json<GitHubTaskResponse>("/api/tasks/github");
+}
+
+export function setNotionStatus(pageId: string, status?: string) {
+  return json<{ ok: true; status: string }>(`/api/tasks/notion/${encodeURIComponent(pageId)}/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(status ? { status } : {}),
+  });
+}
+
+export function addJiraComment(issueKey: string, body: string) {
+  return json<{ ok: true }>(`/api/tasks/jira/${encodeURIComponent(issueKey)}/comment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ body }),
+  });
 }
 
 export function fetchAgents() {

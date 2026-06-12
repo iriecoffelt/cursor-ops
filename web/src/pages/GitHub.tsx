@@ -3,8 +3,6 @@ import { fetchGitHubTasks, type GitHubTaskResponse } from "../api";
 import { BarChart } from "../components/BarChart";
 import { TaskList } from "../components/TaskList";
 
-const REFRESH_MS = 60_000;
-
 export function GitHubPage() {
   const [data, setData] = useState<GitHubTaskResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +22,6 @@ export function GitHubPage() {
 
   useEffect(() => {
     void load();
-    const id = setInterval(() => void load(), REFRESH_MS);
-    return () => clearInterval(id);
   }, [load]);
 
   return (

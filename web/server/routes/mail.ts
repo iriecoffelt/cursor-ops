@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { appUiBase } from "../services/mail/settings.js";
-import { consumeOAuthState } from "../services/mail/oauthState.js";
+import { consumeOAuthState } from "../services/oauthState.js";
 import {
   disconnectGoogle,
   googleAuthUrl,

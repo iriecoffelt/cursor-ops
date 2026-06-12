@@ -158,6 +158,11 @@ function headerValue(headers: Array<{ name?: string; value?: string }> | undefin
   return headers?.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
 }
 
+function safeIsoFromEmailDate(dateHeader: string): string {
+  const parsed = new Date(dateHeader);
+  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+}
+
 export async function fetchGoogleMail(): Promise<{ messages: MailMessage[]; warning?: string }> {
   if (!isProviderConnected("google")) {
     return { messages: [] };
@@ -196,7 +201,7 @@ export async function fetchGoogleMail(): Promise<{ messages: MailMessage[]; warn
         const subject = headerValue(data.payload?.headers, "Subject") || "(no subject)";
         const from = headerValue(data.payload?.headers, "From") || "Unknown sender";
         const date = headerValue(data.payload?.headers, "Date");
-        const receivedAt = date ? new Date(date).toISOString() : new Date().toISOString();
+        const receivedAt = date ? safeIsoFromEmailDate(date) : new Date().toISOString();
 
         return {
           id: data.id,

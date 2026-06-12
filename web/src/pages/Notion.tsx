@@ -67,22 +67,46 @@ export function NotionPage() {
       <div className="grid-2">
         <section className="panel panel-critical">
           <h3>Blockers ({data?.blockers.length ?? 0})</h3>
-          <TaskList items={data?.blockers ?? []} emptyLabel="No blockers" sortByDueDate />
+          <TaskList
+            items={data?.blockers ?? []}
+            emptyLabel="No blockers"
+            sortByDueDate
+            quickActions
+            onTaskUpdated={() => void load()}
+          />
         </section>
         <section className="panel panel-warn">
           <h3>Due today / overdue ({data?.dueToday.length ?? 0})</h3>
-          <TaskList items={data?.dueToday ?? []} emptyLabel="Nothing due" sortByDueDate />
+          <TaskList
+            items={data?.dueToday ?? []}
+            emptyLabel="Nothing due"
+            sortByDueDate
+            quickActions
+            onTaskUpdated={() => void load()}
+          />
         </section>
         <section className="panel" style={{ gridColumn: "1 / -1" }}>
           <h3>Due within 7 days ({dueWithin7Days.length})</h3>
-          <TaskList items={dueWithin7Days} emptyLabel="Nothing due this week" sortByDueDate />
+          <TaskList
+            items={dueWithin7Days}
+            emptyLabel="Nothing due this week"
+            sortByDueDate
+            quickActions
+            onTaskUpdated={() => void load()}
+          />
         </section>
       </div>
 
       {groups.map(([board, items]) => (
         <section className="panel" key={board} style={{ marginTop: 16 }}>
           <h3>{board} ({items.length})</h3>
-          <TaskList items={items} emptyLabel="No tasks" sortByDueDate />
+          <TaskList
+            items={items}
+            emptyLabel="No tasks"
+            sortByDueDate
+            quickActions
+            onTaskUpdated={() => void load()}
+          />
         </section>
       ))}
 
