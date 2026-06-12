@@ -79,6 +79,8 @@ a:hover {
 /* ── Cyberpunk animated backdrop ── */
 
 .app-backdrop {
+  --horizon-y: 66%;
+  --grid-height: 52%;
   position: fixed;
   inset: 0;
   z-index: 0;
@@ -96,7 +98,15 @@ a:hover {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(180deg, transparent 0%, transparent 42%, rgba(255, 0, 170, 0.12) 58%, rgba(255, 120, 0, 0.18) 100%);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 54%,
+    rgba(255, 0, 170, 0.1) 62%,
+    rgba(255, 120, 0, 0.22) 68%,
+    rgba(255, 120, 0, 0.14) 78%,
+    transparent 100%
+  );
 }
 
 /* Clip sun at horizon — avoids mask-image (Safari-friendly) */
@@ -105,7 +115,7 @@ a:hover {
   left: 0;
   right: 0;
   top: 0;
-  height: 54%;
+  height: var(--horizon-y);
   z-index: 1;
   overflow: hidden;
   pointer-events: none;
@@ -118,7 +128,7 @@ a:hover {
   z-index: 0;
   width: min(760px, 115vw);
   height: min(320px, 45vw);
-  transform: translate(-50%, 35%);
+  transform: translate(-50%, 50%);
   border-radius: 50%;
   background: radial-gradient(
     ellipse at center,
@@ -149,10 +159,10 @@ a:hover {
     ),
     linear-gradient(180deg, #ffe566 0%, #ff9500 28%, #ff0088 62%, #9900ff 100%);
   opacity: 0.9;
+  /* Upward-only glow — symmetric shadows read as a full floating disc below the clip */
   box-shadow:
-    0 0 80px rgba(255, 120, 0, 0.65),
-    0 0 140px rgba(255, 0, 136, 0.4),
-    0 0 200px rgba(255, 200, 0, 0.25);
+    0 -12px 60px rgba(255, 120, 0, 0.55),
+    0 -28px 100px rgba(255, 0, 136, 0.35);
   animation: sun-pulse 6s ease-in-out infinite;
 }
 
@@ -160,8 +170,8 @@ a:hover {
   position: absolute;
   left: -50%;
   right: -50%;
-  bottom: -18%;
-  height: 52%;
+  bottom: calc(100% - var(--grid-height) - var(--horizon-y));
+  height: var(--grid-height);
   z-index: 2;
   transform-origin: center top;
   -webkit-transform: perspective(420px) rotateX(68deg) translateZ(0);
